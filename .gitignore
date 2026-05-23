@@ -1,0 +1,12 @@
+/.venv
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.vscode/
+.DS_Store
+.env
+*.sqlite
+/*.log
+run_smoke_with_env.py
