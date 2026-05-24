@@ -17,6 +17,7 @@ from infrastructure.api.dependencies import (
     get_update_restriction_use_case,
     get_validate_membership_use_case,
 )
+from infrastructure.observability.metrics import membership_validations_total, restriction_checks_total
 
 
 class RestrictionUpdateDTO(BaseModel):
@@ -63,7 +64,9 @@ async def validate_membership(
 ) -> MembershipValidationResponseDTO:
     """Validate membership for a player."""
 
-    return await use_case.execute(player_id)
+    result = await use_case.execute(player_id)
+    membership_validations_total.inc()
+    return result
 
 
 @router.get("/restriction/{player_id}")
@@ -76,6 +79,7 @@ async def get_restriction(
     player = await player_repository.get_by_id(player_id)
     if player is None:
         raise HTTPException(status_code=404, detail="Player not found.")
+    restriction_checks_total.inc()
     return {
         "has_restriction": player.restriction_active,
         "restriction_until": player.restriction_until,
