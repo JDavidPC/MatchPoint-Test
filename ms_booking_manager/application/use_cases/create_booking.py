@@ -34,7 +34,10 @@ class CreateBookingUseCase:
         slot = TimeSlot(start_time=dto.start_time, end_time=dto.end_time)
         if slot.is_premium():
             has_membership = await self._identity_client.validate_membership(dto.player_id)
-            BookingDomainService.validate_premium_slot(slot, has_membership)
+            has_restriction = await self._identity_client.get_player_restriction(dto.player_id)
+            BookingDomainService.validate_premium_slot(
+                slot, has_membership, has_restriction
+            )
 
         if dto.is_ranked:
             player_ids = [dto.player_id] + list(dto.guest_player_ids)

@@ -4,7 +4,12 @@ import sys
 import time
 import uuid
 from datetime import datetime, timedelta, timezone, time as dtime
+from zoneinfo import ZoneInfo
+
 import httpx
+
+# Must match MS-BookingManager domain (premium window 18-22 local club time).
+CLUB_TZ = ZoneInfo("America/Bogota")
 
 
 GREEN = "\033[0;32m"
@@ -31,11 +36,20 @@ def new_uuid():
     return str(uuid.uuid4())
 
 
-def iso_tomorrow_at_hour(hour: int):
-    now = datetime.now(timezone.utc)
-    tomorrow = (now + timedelta(days=1)).date()
-    dt = datetime.combine(tomorrow, dtime(hour=hour, minute=0, tzinfo=timezone.utc))
-    return dt.isoformat().replace("+00:00", "Z")
+def iso_tomorrow_at_club_hour(hour: int) -> str:
+    """Return UTC ISO timestamp for tomorrow at `hour` in America/Bogota."""
+    now_club = datetime.now(CLUB_TZ)
+    tomorrow = (now_club + timedelta(days=1)).date()
+    local_dt = datetime.combine(tomorrow, dtime(hour=hour, minute=0), tzinfo=CLUB_TZ)
+    return local_dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def is_premium_club_hour(moment: datetime) -> bool:
+    """True when the instant falls in 18:00-22:00 America/Bogota."""
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=timezone.utc)
+    local = moment.astimezone(CLUB_TZ)
+    return 18 <= local.hour < 22
 
 
 def iso_in_hours(hours: float):
@@ -84,10 +98,10 @@ def main():
     PLAYER_ID = new_uuid()
     GUEST_ID = new_uuid()
 
-    NON_PREMIUM_START = iso_tomorrow_at_hour(10)
-    NON_PREMIUM_END = iso_tomorrow_at_hour(11)
-    PREMIUM_START = iso_tomorrow_at_hour(19)
-    PREMIUM_END = iso_tomorrow_at_hour(20)
+    NON_PREMIUM_START = iso_tomorrow_at_club_hour(10)
+    NON_PREMIUM_END = iso_tomorrow_at_club_hour(11)
+    PREMIUM_START = iso_tomorrow_at_club_hour(19)
+    PREMIUM_END = iso_tomorrow_at_club_hour(20)
     LATE_START = iso_in_hours(1)
     LATE_END = iso_in_hours(2)
 
@@ -171,11 +185,11 @@ def main():
         print_result(False, "Late cancellation")
         fail_count += 1
     else:
-        # Ensure we can create a non-premium slot within the next 2 hours.
-        now_hour = datetime.now(timezone.utc).hour
+        # Ensure we can create a slot within the next 2 hours outside premium hours.
         non_premium_offset = None
         for try_h in (1, 2):
-            if not (18 <= (datetime.now(timezone.utc) + timedelta(hours=try_h)).hour < 22):
+            candidate = datetime.now(timezone.utc) + timedelta(hours=try_h)
+            if not is_premium_club_hour(candidate):
                 non_premium_offset = try_h
                 break
         if non_premium_offset is None:

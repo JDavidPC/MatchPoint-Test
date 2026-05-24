@@ -1,6 +1,20 @@
 from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
+from zoneinfo import ZoneInfo
+
+# Horario premium del club MatchPoint (Colombia): 18:00–22:00 hora local.
+CLUB_TIMEZONE = ZoneInfo("America/Bogota")
+
+
+def club_local_hour(moment: datetime) -> int:
+    """Return the hour (0-23) of a datetime in the club's timezone."""
+
+    if moment.tzinfo is None:
+        local = moment.replace(tzinfo=CLUB_TIMEZONE)
+    else:
+        local = moment.astimezone(CLUB_TIMEZONE)
+    return local.hour
 
 
 @dataclass(frozen=True)
@@ -39,9 +53,10 @@ class TimeSlot:
             raise ValueError("TimeSlot start_time must be before end_time.")
 
     def is_premium(self) -> bool:
-        """Return True when start_time begins within the premium window (18-22)."""
+        """Return True when start_time begins within the premium window (18-22 local)."""
 
-        return 18 <= self.start_time.hour < 22
+        hour = club_local_hour(self.start_time)
+        return 18 <= hour < 22
 
     def is_overlapping(self, other: "TimeSlot") -> bool:
         """Return True when this slot overlaps another slot."""

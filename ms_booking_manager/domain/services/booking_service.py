@@ -13,6 +13,10 @@ class PremiumMembershipRequired(BookingDomainError):
     """Raised when a premium slot requires an active membership."""
 
 
+class PremiumRestricted(BookingDomainError):
+    """Raised when a penalized player attempts a premium slot."""
+
+
 class RankedLevelDifferenceTooHigh(BookingDomainError):
     """Raised when ranked players have a level gap greater than allowed."""
 
@@ -25,9 +29,17 @@ class BookingDomainService:
     """Pure domain rules for booking validation and decisions."""
 
     @staticmethod
-    def validate_premium_slot(slot: TimeSlot, has_membership: bool) -> None:
-        """Validate that premium slots have an active membership."""
-        if slot.is_premium() and not has_membership:
+    def validate_premium_slot(
+        slot: TimeSlot, has_membership: bool, has_restriction: bool = False
+    ) -> None:
+        """Validate membership and restrictions for premium slots."""
+        if not slot.is_premium():
+            return
+        if has_restriction:
+            raise PremiumRestricted(
+                "Player is restricted from premium slots due to low reliability penalty."
+            )
+        if not has_membership:
             raise PremiumMembershipRequired("Premium slot requires active membership.")
 
     @staticmethod

@@ -50,7 +50,23 @@ class IdentityHttpClient(IdentityClient):
         return bool(data.get("is_valid", data.get("is_active", False)))
 
     async def get_player_restriction(self, player_id: UUID) -> bool:
-        data = await self._get(f"/internal/restriction/{player_id}")
+        try:
+            response = await self._client.get(f"/internal/restriction/{player_id}")
+        except (httpx.RequestError, httpx.TimeoutException) as exc:
+            raise IdentityServiceUnavailable("MS-Identity request failed.") from exc
+
+        if response.status_code == 404:
+            return False
+        if response.status_code != 200:
+            raise IdentityServiceUnavailable(
+                f"MS-Identity returned status {response.status_code}."
+            )
+
+        try:
+            data = response.json()
+        except ValueError as exc:
+            raise IdentityServiceUnavailable("MS-Identity returned invalid JSON.") from exc
+
         return bool(
             data.get(
                 "has_restriction",

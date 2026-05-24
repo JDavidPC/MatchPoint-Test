@@ -14,6 +14,7 @@ from domain.services.booking_service import (
     BookingDomainError,
     BookingOverlapError,
     PremiumMembershipRequired,
+    PremiumRestricted,
     RankedLevelDifferenceTooHigh,
 )
 from infrastructure.clients.identity_http_client import IdentityServiceUnavailable
@@ -47,6 +48,8 @@ async def create_booking(
     except BookingOverlapError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except PremiumMembershipRequired as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except PremiumRestricted as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from exc
     except RankedLevelDifferenceTooHigh as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
