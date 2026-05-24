@@ -52,3 +52,30 @@ class CourtAvailabilityResponseDTO(BaseModel):
         default_factory=list, description="Available time slots."
     )
 
+
+class CourtAvailabilitySummaryDTO(BaseModel):
+    """Availability summary for one court on a date."""
+
+    id: UUID = Field(..., description="Court identifier.")
+    name: str = Field(..., description="Court name.")
+    description: str = Field(..., description="Court description.")
+    available_slots: int = Field(..., ge=0, description="Number of free slots.")
+    has_availability: bool = Field(..., description="True when at least one slot is free.")
+
+
+class CourtsAvailabilityByDateResponseDTO(BaseModel):
+    """Availability summaries for all active courts on a date."""
+
+    date: Date = Field(..., description="Date queried.")
+    courts: list[CourtAvailabilitySummaryDTO] = Field(
+        default_factory=list, description="Availability per court."
+    )
+
+
+class CourtSummaryDTO(BaseModel):
+    """Active court in the club catalog."""
+
+    id: UUID = Field(..., description="Court identifier.")
+    name: str = Field(..., description="Court name.")
+    description: str = Field(..., description="Court description.")
+
