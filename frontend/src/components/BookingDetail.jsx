@@ -1,9 +1,24 @@
-import { useState } from 'react'
-import { cancelBooking, getBooking } from '../api/matchpoint'
+import { useCallback, useEffect, useState } from 'react'
+import { cancelBooking, getCourts, listBookingsByDate } from '../api/matchpoint'
 import { userFacingError } from '../api/errors'
-import { formatDateTime, formatStatus, formatYesNo } from '../utils/format'
+import {
+  buildCourtNameMap,
+  formatCourtName,
+  formatDateTime,
+  formatStatus,
+  formatTimeRange,
+  formatYesNo,
+  toDateInputValue,
+} from '../utils/format'
+import { loadSession, saveSession } from '../utils/session'
 
-function BookingCard({ booking, onCancel, cancelling }) {
+function tomorrowDate() {
+  const d = new Date()
+  d.setDate(d.getDate() + 1)
+  return d
+}
+
+function BookingCard({ booking, courtNames, onCancel, cancelling }) {
   const isPending = booking.status === 'PENDING'
 
   return (
@@ -15,11 +30,11 @@ function BookingCard({ booking, onCancel, cancelling }) {
       </div>
 
       <dl className="booking-details">
-        <dt>Reserva</dt>
+        <dt>ID de reserva</dt>
         <dd className="mono">{booking.id}</dd>
 
         <dt>Cancha</dt>
-        <dd className="mono">{booking.court_id}</dd>
+        <dd>{formatCourtName(booking.court_id, courtNames)}</dd>
 
         <dt>Jugador</dt>
         <dd className="mono">{booking.player_id}</dd>
@@ -49,33 +64,68 @@ function BookingCard({ booking, onCancel, cancelling }) {
 }
 
 export default function BookingDetail() {
-  const [bookingId, setBookingId] = useState('')
-  const [playerId, setPlayerId] = useState('')
-  const [booking, setBooking] = useState(null)
+  const session = loadSession()
+  const [selectedDate, setSelectedDate] = useState(
+    () => session.lastBookingDate ?? toDateInputValue(tomorrowDate()),
+  )
+  const [includeCancelled, setIncludeCancelled] = useState(false)
+  const [courtNames, setCourtNames] = useState({})
+  const [bookings, setBookings] = useState([])
+  const [selectedId, setSelectedId] = useState(session.lastBookingId ?? '')
   const [loading, setLoading] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
 
-  async function handleSearch(event) {
-    event.preventDefault()
+  const selectedBooking = bookings.find((item) => item.id === selectedId) ?? null
+
+  useEffect(() => {
+    getCourts()
+      .then((courts) => setCourtNames(buildCourtNameMap(courts)))
+      .catch(() => {})
+  }, [])
+
+  const loadBookings = useCallback(async () => {
     setLoading(true)
     setError('')
     setNotice('')
-    setBooking(null)
 
     try {
-      const data = await getBooking(bookingId.trim())
-      setBooking(data)
+      const data = await listBookingsByDate(selectedDate, { includeCancelled })
+      const nextBookings = Array.isArray(data) ? data : []
+      setBookings(nextBookings)
+
+      setSelectedId((current) => {
+        if (nextBookings.some((item) => item.id === current)) {
+          return current
+        }
+        const saved = loadSession().lastBookingId
+        if (saved && nextBookings.some((item) => item.id === saved)) {
+          return saved
+        }
+        return nextBookings[0]?.id ?? ''
+      })
     } catch (err) {
+      setBookings([])
+      setSelectedId('')
       setError(userFacingError(err.message))
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedDate, includeCancelled])
+
+  useEffect(() => {
+    loadBookings()
+  }, [loadBookings])
+
+  useEffect(() => {
+    if (selectedBooking) {
+      saveSession({ lastBookingId: selectedBooking.id })
+    }
+  }, [selectedBooking])
 
   async function handleCancel() {
-    if (!booking) return
+    if (!selectedBooking) return
     if (!window.confirm('¿Quieres cancelar esta reserva?')) return
 
     setCancelling(true)
@@ -83,8 +133,10 @@ export default function BookingDetail() {
     setNotice('')
 
     try {
-      const updated = await cancelBooking(booking.id, playerId.trim())
-      setBooking(updated)
+      const updated = await cancelBooking(selectedBooking.id, selectedBooking.player_id)
+      setBookings((current) =>
+        current.map((item) => (item.id === updated.id ? updated : item)),
+      )
       setNotice(
         updated.status === 'CANCELLED_LATE'
           ? 'Reserva cancelada. Cancelaste con poco tiempo de anticipación.'
@@ -99,43 +151,80 @@ export default function BookingDetail() {
 
   return (
     <section className="panel">
-      <h2>Mis reservas</h2>
+      <h2>Reservas del día</h2>
+      <p className="hint">
+        Todas las reservas activas de la fecha elegida. Las canceladas no ocupan horario en la
+        cancha.
+      </p>
 
-      <form className="form" onSubmit={handleSearch}>
+      <div className="form">
         <label>
-          ID de reserva
+          Fecha
           <input
-            type="text"
-            value={bookingId}
-            onChange={(e) => setBookingId(e.target.value)}
-            placeholder="Pega el ID de tu reserva"
-            required
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
           />
         </label>
 
-        <label>
-          ID de jugador
+        <label className="checkbox">
           <input
-            type="text"
-            value={playerId}
-            onChange={(e) => setPlayerId(e.target.value)}
-            placeholder="Tu ID de jugador"
-            required
+            type="checkbox"
+            checked={includeCancelled}
+            onChange={(e) => setIncludeCancelled(e.target.checked)}
           />
+          Incluir canceladas
         </label>
+      </div>
 
-        <div className="actions">
-          <button type="submit" disabled={loading}>
-            {loading ? 'Buscando…' : 'Buscar reserva'}
-          </button>
-        </div>
-      </form>
-
+      {loading && <p className="hint">Cargando reservas…</p>}
       {error && <p className="alert error">{error}</p>}
       {notice && <p className="alert success">{notice}</p>}
 
-      {booking && (
-        <BookingCard booking={booking} onCancel={handleCancel} cancelling={cancelling} />
+      {!loading && !error && bookings.length === 0 && (
+        <p className="hint">No hay reservas para esta fecha.</p>
+      )}
+
+      {bookings.length > 0 && (
+        <div className="booking-list">
+          <strong>Reservas del día</strong>
+          <ul className="booking-checklist">
+            {bookings.map((item) => {
+              const isSelected = item.id === selectedId
+              return (
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    className={isSelected ? 'booking-item selected' : 'booking-item'}
+                    onClick={() => setSelectedId(item.id)}
+                  >
+                    <span className="booking-item-time">
+                      {formatTimeRange(item.start_time, item.end_time)}
+                    </span>
+                    <span className="booking-item-court">
+                      Cancha: {formatCourtName(item.court_id, courtNames)}
+                    </span>
+                    <span className={`status-badge status-${item.status.toLowerCase()}`}>
+                      {formatStatus(item.status)}
+                    </span>
+                    <span className="booking-item-player">
+                      Jugador: <span className="mono">{item.player_id}</span>
+                    </span>
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
+
+      {selectedBooking && (
+        <BookingCard
+          booking={selectedBooking}
+          courtNames={courtNames}
+          onCancel={handleCancel}
+          cancelling={cancelling}
+        />
       )}
     </section>
   )

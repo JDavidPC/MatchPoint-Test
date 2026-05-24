@@ -67,6 +67,11 @@
   font-size: 0.95rem;
 }
 
+.hint.inline {
+  font-weight: 400;
+  font-size: 0.85rem;
+}
+
 .form {
   display: grid;
   gap: 1rem;
@@ -80,11 +85,16 @@
 }
 
 .form input[type='text'],
+.form input[type='date'],
 .form input[type='datetime-local'] {
   padding: 0.6rem 0.75rem;
   border: 1px solid #d1d5db;
   border-radius: 8px;
   font: inherit;
+  color: #111827;
+  background: #fff;
+  color-scheme: light;
+  min-height: 2.75rem;
 }
 
 .checkbox {
@@ -217,6 +227,65 @@ button:disabled {
   border-top: 1px solid #e5e7eb;
 }
 
+.booking-list {
+  margin-top: 1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.booking-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+button.booking-item {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.35rem 0.75rem;
+  text-align: left;
+  background: #fff;
+  color: #111827;
+  border: 1px solid #d1d5db;
+  padding: 0.75rem;
+}
+
+button.booking-item:hover {
+  border-color: #166534;
+  background: #fff;
+  color: #111827;
+}
+
+button.booking-item.selected,
+button.booking-item.selected:hover {
+  background: #166534;
+  border-color: #166534;
+  color: #fff;
+}
+
+.booking-item-time {
+  font-weight: 600;
+  grid-column: 1 / -1;
+}
+
+.booking-item-court {
+  font-size: 0.9rem;
+}
+
+.booking-item-player {
+  grid-column: 1 / -1;
+  font-size: 0.82rem;
+  opacity: 0.85;
+  word-break: break-all;
+}
+
+button.booking-item.selected .booking-item-player {
+  color: #ecfdf5;
+}
+
 .booking-card-head {
   margin-bottom: 1rem;
 }
@@ -272,4 +341,168 @@ button.danger {
 
 button.danger:hover:not(:disabled) {
   background: #991b1b;
+}
+
+.actions.compact {
+  margin: 0;
+}
+
+.success-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.court-picker {
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f9fafb;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.court-picker-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.court-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: 0.5rem;
+}
+
+button.court-btn {
+  display: grid;
+  gap: 0.2rem;
+  text-align: left;
+  background: #fff;
+  color: #111827;
+  border: 1px solid #d1d5db;
+  padding: 0.75rem;
+}
+
+button.court-btn:hover:not(:disabled) {
+  border-color: #166534;
+  background: #fff;
+  color: #111827;
+}
+
+button.court-btn.selected,
+button.court-btn.selected:hover:not(:disabled) {
+  background: #166534;
+  border-color: #166534;
+  color: #fff;
+}
+
+button.court-btn.disabled,
+button.court-btn.disabled:hover:not(:disabled) {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.court-btn-name {
+  font-weight: 600;
+}
+
+.court-btn-meta,
+.court-btn-slots {
+  font-size: 0.85rem;
+}
+
+.court-btn.selected .court-btn-meta,
+.court-btn.selected .court-btn-slots {
+  color: #ecfdf5;
+}
+
+.availability {
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f9fafb;
+}
+
+.availability-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.availability-body {
+  margin-top: 0.75rem;
+}
+
+.availability-toggle {
+  background: transparent;
+  color: #111827;
+  border: none;
+  padding: 0;
+  font-weight: 600;
+  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.availability-toggle:hover {
+  color: #166534;
+}
+
+.availability-chevron {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.availability-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.availability-head h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.availability .alert {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+}
+
+.slot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+  gap: 0.5rem;
+}
+
+button.slot-btn {
+  background: #fff;
+  color: #111827;
+  border: 1px solid #d1d5db;
+  padding: 0.55rem 0.65rem;
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+button.slot-btn:hover:not(:disabled) {
+  border-color: #166534;
+  color: #166534;
+  background: #fff;
+}
+
+button.slot-btn.selected,
+button.slot-btn.selected:hover:not(:disabled) {
+  background: #166534;
+  border-color: #166534;
+  color: #fff;
 }

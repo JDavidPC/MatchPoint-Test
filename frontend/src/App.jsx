@@ -6,12 +6,16 @@ import './App.css'
 
 const TABS = [
   { id: 'booking', label: 'Reservar' },
-  { id: 'my-bookings', label: 'Mis reservas' },
+  { id: 'my-bookings', label: 'Reservas del día' },
   { id: 'ranking', label: 'Ranking' },
 ]
 
 export default function App() {
   const [tab, setTab] = useState('booking')
+
+  function goToMyBookings() {
+    setTab('my-bookings')
+  }
 
   return (
     <div className="app">
@@ -35,7 +39,7 @@ export default function App() {
       </header>
 
       <main>
-        {tab === 'booking' && <BookingForm />}
+        {tab === 'booking' && <BookingForm onViewBooking={goToMyBookings} />}
         {tab === 'my-bookings' && <BookingDetail />}
         {tab === 'ranking' && <RankingList />}
       </main>

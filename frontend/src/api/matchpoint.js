@@ -30,6 +30,29 @@ export async function cancelBooking(bookingId, playerId) {
   return parseResponse(response)
 }
 
+export async function getCourts() {
+  const response = await fetch('/courts')
+  return parseResponse(response)
+}
+
+export async function listBookingsByDate(date, { playerId, includeCancelled = false } = {}) {
+  const params = new URLSearchParams({ date })
+  if (playerId) {
+    params.set('player_id', playerId)
+  }
+  if (includeCancelled) {
+    params.set('include_cancelled', 'true')
+  }
+  const response = await fetch(`/bookings/by-date?${params}`)
+  return parseResponse(response)
+}
+
+export async function getCourtsAvailability(date) {
+  const params = new URLSearchParams({ date })
+  const response = await fetch(`/courts/availability?${params}`)
+  return parseResponse(response)
+}
+
 export async function getCourtAvailability(courtId, date) {
   const params = new URLSearchParams({ date })
   const response = await fetch(`/courts/${courtId}/availability?${params}`)
