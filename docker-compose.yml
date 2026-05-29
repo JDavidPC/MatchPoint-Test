@@ -178,6 +178,11 @@ services:
     networks:
       - matchpoint-network
 
+  frontend:
+    build: ./frontend
+    networks:
+      - matchpoint-network
+
   nginx:
     image: nginx:1.25-alpine
     ports:
@@ -187,6 +192,8 @@ services:
     depends_on:
       ms-booking-manager:
         condition: service_healthy
+      frontend:
+        condition: service_started
     networks:
       - matchpoint-network
 
